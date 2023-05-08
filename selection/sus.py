@@ -2,7 +2,6 @@ import random
 
 from numpy import random
 
-from constants import C
 from chromosome import Chromosome
 from population import Population
 from selection.utils import create_wheel, binary_search_by_wheel
@@ -29,8 +28,8 @@ def basic_sus(wheel: list[tuple[tuple[float, float], Chromosome]]) -> list[Chrom
 
 
 class RankExponentialSUS:
-    def __init__(self):
-        self.c = 0.95
+    def __init__(self, c: float = 0.95):
+        self.c = c
 
     def exponential_sus(self, population: Population):
         size = len(population.chromosomes)
@@ -53,7 +52,10 @@ class RankExponentialSUS:
         return self.exponential_sus(population)
 
     def scale(self, size: int, rank: int) -> float:
-        return ((C - 1) / (pow(C, size) - 1)) * pow(C, size - rank)
+        return ((self.c - 1) / (pow(self.c, size) - 1)) * pow(self.c, size - rank)
 
     def sort(self, chromosomes):
         return sorted(chromosomes.copy(), key=lambda chromosome: chromosome.fitness, reverse=True)
+
+    def __str__(self):
+        return f"RankExponentialSUS[c={self.c}]"

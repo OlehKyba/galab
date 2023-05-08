@@ -21,45 +21,55 @@ class EvoAlgorithm:
         self.pressure_stats = PressureStats()
         self.reproduction_stats = ReproductionStats()
         self.selection_diff_stats = SelectionDiffStats()
+
         best_genotypes = self.population.get_best_genotypes()
         self.pressure_stats.num_of_best.append(
             self.population.get_chromosomes_copies_counts(best_genotypes)
         )
+
+        best_chromosomes = self.population.get_best_chromosomes()
+        self.pressure_stats.num_of_best.append(
+            self.population.get_chromosomes_copies_count(best_chromosomes)
+        )
+
         self.pressure_stats.f_best.append(self.population.get_max_fitness())
         self.fitness_function = fitness_function
         self.optimal = optimal
 
-    def run(self, run, folder_name, iterations_to_plot):
+    def run(self, run, folder_name, encoding, iterations_to_plot):
         self.iteration = 0
         avg_fitness_list = [self.population.get_mean_fitness()]
         std_fitness_list = [self.population.get_fitness_std()]
         stop = 1000 if "Disruptive" in self.selection_function.__class__.__name__ else G
         convergent = self.population.estimate_convergence()
+        optimal_counts = [self.population.get_chromosomes_copies_count(self.optimal)]
 
         while not convergent and self.iteration < stop:
             if self.iteration < iterations_to_plot and run < iterations_to_plot:
                 self.fitness_function.draw_histograms(
                     population=self.population,
                     folder_name=folder_name,
-                    func_name=self.selection_function.__class__.__name__,
+                    encoding=encoding,
+                    func_name=str(self.selection_function),
                     run=run + 1,
                     iteration=self.iteration + 1,
                 )
 
-            best_genotypes = self.population.get_best_genotypes()
+            best_chromosomes = self.population.get_best_chromosomes()
             f = avg_fitness_list[self.iteration]
             self.population = self.selection_function.select(self.population)
             keys_after_selection = self.population.get_keys_list()
             selected_chromosome_keys = set(keys_after_selection)
             f_parents_pool = self.population.get_mean_fitness()
-            self.population.crossover(self.fitness_function)
-            self.population.mutate(self.fitness_function)
+            self.population.crossover(self.fitness_function, encoding)
+            self.population.mutate(self.fitness_function, encoding)
             f_std = self.population.get_fitness_std()
             std_fitness_list.append(f_std)
             fs = self.population.get_mean_fitness()
             avg_fitness_list.append(fs)
+            optimal_counts.append(self.population.get_chromosomes_copies_count(self.optimal))
             self.selection_diff_stats.s_list.append(f_parents_pool - f)
-            num_of_best = self.population.get_chromosomes_copies_counts(best_genotypes)
+            num_of_best = self.population.get_chromosomes_copies_count(best_chromosomes)
             self.reproduction_stats.rr_list.append(
                 len(selected_chromosome_keys) / N
             )
@@ -95,23 +105,19 @@ class EvoAlgorithm:
             self.fitness_function.draw_histograms(
                 population=self.population,
                 folder_name=folder_name,
-                func_name=self.selection_function.__class__.__name__,
+                encoding=encoding,
+                func_name=str(self.selection_function),
                 run=run + 1,
                 iteration=self.iteration + 1,
             )
 
-        ns = NoiseStats() if self.fitness_function.__class__.__name__ == "Fconst" else None
         self.pressure_stats.takeover_time = self.iteration
         self.pressure_stats.f_found = self.population.get_max_fitness()
         self.pressure_stats.f_avg = self.population.get_mean_fitness()
         self.pressure_stats.calculate()
         self.reproduction_stats.calculate()
         self.selection_diff_stats.calculate()
-        is_successful = self.check_success() if convergent else False
-
-        if is_successful and ns:
-            ns.NI = self.iteration
-            ns.conv_to = self.population.chromosomes[0].code[0]
+        is_successful = self.check_success(encoding) if convergent else False
 
         return Run(
             avg_fitness_list,
@@ -119,66 +125,25 @@ class EvoAlgorithm:
             self.pressure_stats,
             self.reproduction_stats,
             self.selection_diff_stats,
-            ns,
+            None,
             is_successful,
+            optimal_count=optimal_counts,
         )
 
-    def check_success(self):
+    def check_success(self, encoding):
         ff_name = self.fitness_function.__class__.__name__
-        if ff_name == "FH" or ff_name == "FHD":
-            optimal_chromosome = list(self.optimal.code)
-            optimal_chromosomes = self.population.get_chromosomes_copies_count(optimal_chromosome)
-            return optimal_chromosomes == N
+        if ff_name == "FHD":
+            optimal_chromosomes = self.population.get_chromosomes_copies_count(self.optimal)
+            if self.population.p_m:
+                return optimal_chromosomes >= 0.9 * N
+            else:
+                return optimal_chromosomes == N
         elif ff_name == "Fconst":
-            return self.population.is_identical
+            return True
         else:
             return any(
                 [
-                    self.fitness_function.check_chromosome_success(p)
+                    self.fitness_function.check_chromosome_success(p, encoding)
                     for p in self.population.chromosomes
                 ]
             )
-
-    @staticmethod
-    def calculate_noise(sf) -> Run:
-        pop = Fconst().generate_population(N, 100, 0, 0)
-        population = Population(pop.chromosomes.copy(), pop.p_m, pop.c_m)
-        iteration = 0
-        stop = 1000 if "Disruptive" in sf.__class__.__name__ else G
-        reproduction_stats = ReproductionStats()
-        is_successful = False
-
-        while not population.estimate_convergence() and iteration < stop:
-            keys_before_selection = population.get_keys_list()
-            best_genotypes = population.get_best_genotypes()
-
-            population = sf.select(population)
-
-            keys_after_selection = population.get_keys_list()
-            not_selected_chromosomes = set(keys_before_selection) - set(
-                keys_after_selection
-            )
-            num_of_best = population.get_chromosomes_copies_counts(best_genotypes)
-
-            reproduction_stats.rr_list.append(
-                1 - (len(not_selected_chromosomes) / N)
-            )
-            reproduction_stats.best_rr_list.append(
-                num_of_best / len(population.chromosomes)
-            )
-
-            iteration += 1
-
-        ns = NoiseStats()
-        reproduction_stats.calculate()
-
-        if population.estimate_convergence():
-            is_successful = True
-            ns.NI = iteration
-            ns.conv_to = population.chromosomes[0].code[0]
-
-        return Run(
-            reproduction_stats=reproduction_stats,
-            noise_stats=ns,
-            is_successful=is_successful,
-        )

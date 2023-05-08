@@ -2,11 +2,13 @@ import random
 
 import numpy as np
 
-from constants import C
 from population import Population
 
 
 class RankExponentialRWS:
+    def __init__(self, c: float = 0.95):
+        self.c = c
+
     def exponential_rws(self, population: Population):
         size = len(population.fitness_list)
 
@@ -14,10 +16,11 @@ class RankExponentialRWS:
         if sum(probabilities) == 0:
             return population
 
-        chromosomes = [
-            np.random.choice(population.chromosomes, p=probabilities)
-            for _ in range(len(population.chromosomes))
-        ]
+        chromosomes = np.random.choice(
+            population.chromosomes,
+            len(population.chromosomes),
+            p=probabilities,
+        ).tolist()
         population.update_chromosomes(chromosomes)
 
         return population
@@ -30,7 +33,10 @@ class RankExponentialRWS:
         return self.exponential_rws(population)
 
     def scale(self, size: int, rank: int):
-        return ((C - 1) / (pow(C, size) - 1)) * pow(C, size - rank)
+        return ((self.c - 1) / (pow(self.c, size) - 1)) * pow(self.c, size - rank)
 
     def sort(self, chromosomes):
         return sorted(chromosomes.copy(), key=lambda chromosome: chromosome.fitness, reverse=True)
+
+    def __str__(self):
+        return f"RankExponentialRWS[c={self.c}]"

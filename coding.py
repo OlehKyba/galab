@@ -1,7 +1,5 @@
 import math
 
-from constants import ENCODING
-
 
 def flip_num(num):
     return 0 if num != 0 else 1
@@ -62,18 +60,18 @@ def decimal_to_binary(decimal, size):
     return binary.zfill(size)
 
 
-def encode(x, a, b, m):
+def encode(x, a, b, m, encoding: str):
     step = (math.pow(2, m) - 1) / (b - a)
     n = round((x - a) * step)
-    code = decimal_to_gray(n, m) if ENCODING == "gray" else decimal_to_binary(n, m)
+    code = decimal_to_gray(n, m) if encoding == "gray" else decimal_to_binary(n, m)
     code = chars2ints(code)
     return code
 
 
-def decode(code, a, b, m):
+def decode(code, a, b, m, encoding: str):
     code = ints2chars(code)
     step = (b - a) / (math.pow(2, m) - 1)
-    n = gray_to_decimal(code) if ENCODING == "gray" else binary_to_decimal(code)
+    n = gray_to_decimal(code) if encoding == "gray" else binary_to_decimal(code)
     x = round(a + n * step, 2)
     return x 
 

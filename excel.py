@@ -21,8 +21,8 @@ def save_to_excel_internal(sheet, dictionary, col_num=1, row_num=2, print_keys=T
     return col_num
 
 
-def save_to_excel(runs_dictionary, selection_func_name, has_noise_stats):
-    path = f"{selection_func_name}/{N}"
+def save_to_excel(runs_dictionary, encoding, selection_func_name, has_noise_stats):
+    path = f"{selection_func_name}/{encoding}/{N}" if encoding else f"{selection_func_name}/{N}"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -98,8 +98,8 @@ def save_to_excel(runs_dictionary, selection_func_name, has_noise_stats):
 
         func_num = func_num + 1
 
-    if has_noise_stats:
-        save_noise_to_excel(runs_dictionary, worksheet, merge_format)
+    # if has_noise_stats:
+    #     save_noise_to_excel(runs_dictionary, worksheet, merge_format)
 
     workbook.close()
 
@@ -162,7 +162,7 @@ def save_noise_to_excel(runs_dictionary, worksheet, merge_format):
 
 
 def save_avg_to_excel(func_runs_dictionary, noise_runs_dictionary):
-    path = "Report"
+    path = f"Report/{N}"
     if not os.path.exists(path):
         os.makedirs(path)
     workbook = xlsxwriter.Workbook(f"{path}/avg_data.xlsx")
@@ -172,7 +172,7 @@ def save_avg_to_excel(func_runs_dictionary, noise_runs_dictionary):
         {"bold": 1, "border": 1, "align": "center", "fg_color": "yellow"}
     )
     row = 1
-    for fitness_func, runs_dictionary in func_runs_dictionary.items():
+    for (fitness_func, encoding), runs_dictionary in func_runs_dictionary.items():
         func_num = 1
         for func_name, runs_stats in runs_dictionary.items():
             worksheet.write(row + 1, 0, func_name)
@@ -180,13 +180,14 @@ def save_avg_to_excel(func_runs_dictionary, noise_runs_dictionary):
                 worksheet, runs_stats.as_dict(), 1, row + 1, func_num == 1
             )
             if func_num == 1:
+                title = f"{fitness_func} ({encoding})" if encoding else fitness_func
                 worksheet.merge_range(
-                    row - 1, 1, row - 1, last_col_num - 1, fitness_func, merge_format
+                    row - 1, 1, row - 1, last_col_num - 1, title, merge_format
                 )
             func_num = func_num + 1
             row = row + 1
         row = row + 3
-    for fitness_func, runs_dictionary in noise_runs_dictionary.items():
+    for (fitness_func, encoding), runs_dictionary in noise_runs_dictionary.items():
         func_num = 1
         for func_name, runs_stats in runs_dictionary.items():
             worksheet.write(row + 1, 0, func_name)
@@ -194,8 +195,9 @@ def save_avg_to_excel(func_runs_dictionary, noise_runs_dictionary):
                 worksheet, runs_stats.as_noise_dict(), 1, row + 1, func_num == 1
             )
             if func_num == 1:
+                title = f"{fitness_func} ({encoding})" if encoding else fitness_func
                 worksheet.merge_range(
-                    row - 1, 1, row - 1, last_col_num - 1, fitness_func, merge_format
+                    row - 1, 1, row - 1, last_col_num - 1, title, merge_format
                 )
             func_num = func_num + 1
             row = row + 1

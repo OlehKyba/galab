@@ -3,8 +3,9 @@ from constants import N
 import os
 
 
-def save_line_plot(fitness_func_name, func_name, data, file_name, y_label, iteration):
-    path = f"{fitness_func_name}/{N}/{func_name}/{iteration}"
+def save_line_plot(fitness_func_name, encoding, func_name, data, file_name, y_label, iteration):
+    path = f"{fitness_func_name}/{encoding}" if encoding else fitness_func_name
+    path += f"/{N}/{func_name}/{iteration}"
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -12,15 +13,18 @@ def save_line_plot(fitness_func_name, func_name, data, file_name, y_label, itera
     plt.plot(x, data, label=func_name)
     plt.ylabel(y_label)
     plt.xlabel("generation")
+    plt.ylim(ymin=0)
+    plt.xlim(xmin=1)
     plt.legend()
     plt.savefig(path + "/" + file_name + ".png")
     plt.close()
 
 
 def save_lines_plot(
-    fitness_func_name, func_name, data_arr, label_arr, file_name, y_label, iteration
+    fitness_func_name, encoding, func_name, data_arr, label_arr, file_name, y_label, iteration
 ):
-    path = f"{fitness_func_name}/{N}/{func_name}/{iteration}"
+    path = f"{fitness_func_name}/{encoding}" if encoding else fitness_func_name
+    path += f"/{N}/{func_name}/{iteration}"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -33,6 +37,8 @@ def save_lines_plot(
 
     plt.ylabel(y_label)
     plt.xlabel("generation")
+    plt.ylim(ymin=0)
+    plt.xlim(xmin=1)
     plt.legend()
     plt.savefig(path + "/" + file_name + ".png")
     plt.close()

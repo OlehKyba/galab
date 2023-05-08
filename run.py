@@ -8,6 +8,7 @@ class Run:
         selection_diff_stats=None,
         noise_stats=None,
         is_successful=None,
+        optimal_count=None,
     ):
         self.avg_fitness_list = avg_fitness_list
         self.std_fitness_list = std_fitness_list
@@ -16,3 +17,4 @@ class Run:
         self.selection_diff_stats = selection_diff_stats
         self.noise_stats = noise_stats
         self.is_successful = is_successful
+        self.optimal_count = optimal_count
